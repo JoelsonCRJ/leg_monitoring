@@ -2,14 +2,10 @@
 
 import rospy
 from sensor_msgs.msg import LaserScan
-#from geometry_msgs.msg import Twist
-from std_msgs.msg import String
 from std_msgs.msg import Float32
-
 import math
 import numpy as np
 from sklearn.cluster import DBSCAN
-import matplotlib.pyplot as plt
 import math
 import time
 
@@ -26,7 +22,7 @@ class LegL():
 
 	def initParameters(self):
 		self.LegMonitoringTopic = self.rospy.get_param("~LegMonitoring_topic","/rp_scan")
-		self.controlRate = self.rospy.get_param("~control_rate", 100)
+		self.controlRate = self.rospy.get_param("~control_rate", 20)
 		self.angle_min_new = self.rospy.get_param("~angle_min_new",155)
 		self.angle_max_new = self.rospy.get_param("~angle_min_new",215)
 		return
@@ -51,11 +47,7 @@ class LegL():
 		self.range_min = 0
 		self.range_max = 0
 		self.change = False
-		self.font = {'family': 'serif',
-					'color':  'darkred',
-					'weight': 'normal',
-					'size': 9,
-					}
+
 		self.amostras = [[0,0],[0,0]]
 		self.distAnt = 0
 		self.distAtual = 0
@@ -87,35 +79,26 @@ class LegL():
 	""" ---------------------------------- """
 
 	def legCluster(self):
-		#Encontra os clusters
 		clustering = DBSCAN(eps=0.05, min_samples=4).fit(self.cart)
 		IDX = clustering.labels_
-		#plot dos dados
 		k = np.max(IDX)
-		#ramdom das cores
-		cmap = plt.cm.get_cmap('hsv', 4)
+
 
 		#gera a variavel das medias
 		medias = []
 		for j in range(k+1):
 			Xj = self.cart[IDX==j]
-			Xj[:,0]=Xj[:,0] #*(-1)
+			Xj[:,0]=Xj[:,0] 
 			mediaX = np.mean(Xj[:,0])
 			mediaY = np.mean(Xj[:,1])
 			medias.append([mediaX,mediaY])
-			stilo = '.'
-			color = cmap(j)
-			plt.scatter(Xj[:,0],Xj[:,1], c=color, marker=stilo)
-			plt.text(mediaX, mediaY, 'leg ' + str(j+1), fontdict=self.font)
-			plt.xlim([0, 1])
-			plt.ylim([-0.5, 0.5])
+
 
 		if medias != []:
 			mediasArray = np.array(medias)
 			self.mediaX = np.mean(mediasArray[:,0])
 			self.mediaY = np.mean(mediasArray[:,1])
-			plt.text(self.mediaX, self.mediaY, '*', fontdict=self.font)
-			plt.text(self.mediaX+0.02, self.mediaY, 'Person', fontdict=self.font)
+
 			self.amostras[1]=[self.mediaX, self.mediaY]
 			self.distAnt = math.sqrt(math.pow(self.amostras[0][0],2)+math.pow(self.amostras[0][1],2))
 			self.distAtual = math.sqrt(math.pow(self.amostras[1][0],2)+math.pow(self.amostras[1][1],2))
@@ -136,22 +119,18 @@ class LegL():
 		return
 
 	def mainControl(self):
-		plt.ion()
 		while not self.rospy.is_shutdown():
-			self.msg = LaserScan()
 			if self.change:
 				self.start = time.time()
 				self.cartesiano = []
 				angulo = self.angle_min
 				anguloMin = self.angle_min_new
 				anguloMax = self.angle_max_new
-				# Vetor Range tem 1440 posicoes. /4 = 360! Logo, para acessar a posicao referente aquele angulo, so multiplicar por 4
 				vetorRangeCropped = [anguloMin*4, anguloMax*4]
 
 				
 				incr = self.angle_increment
 				for i in range(len(self.ranges)):
-					# capturas as amostras nas distancias especificadas
 					if not math.isnan(self.ranges[i]) and not math.isinf(self.ranges[i]) and ((i> vetorRangeCropped[0] and i< vetorRangeCropped[1])) and self.ranges[i]<0.7:
 						self.cartesiano.append([self.ranges[i] * math.cos(angulo), self.ranges[i] * math.sin(angulo)])
 					angulo = angulo + incr
@@ -164,12 +143,8 @@ class LegL():
 
 				else:
 					msg1 = Float32()
-					msg1.data = 0
+					msg1.data = 0.0
 					self.pubDist.publish(msg1)
-
-				plt.grid()
-				plt.pause(0.0001)
-				plt.clf()
 
 				self.change = False
 

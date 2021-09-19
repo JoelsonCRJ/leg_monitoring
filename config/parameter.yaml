@@ -1,4 +1,4 @@
-LegMonitoring_topic: scan_rplidar
+LegMonitoring_topic: rp_scan
 control_rate: 100
 angle_min_new: 155
 angle_max_new: 215

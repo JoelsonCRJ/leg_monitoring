@@ -9,8 +9,8 @@ This launch file is used when RPLidar node is already launched and only leg_lase
 </node> -->
 <node 
   pkg="leg_monitoring"
-  name="leg_laser" 
-  type="leg_laser.py" 
+  name="lite_leg_laser" 
+  type="lite_leg_laser.py" 
   output="screen">
 </node>
 
